@@ -22,24 +22,42 @@ class PhotonProject:
     def add_middleware(self, middleware):
         self.middlewares.append(middleware)
 
-    def listen(self, router, host=None):
-
+    def listen(self, router, host: str | None = None):
         self.router = router
         self.routes = self.router._get_routes()
 
-        if not host:
-            host = ''
+        host = self._normalize_host(host)
 
-        elif host == "localhost":
-            host = '127.0.0.1'
-        
-        elif host == "0.0.0.0":
-            host = ''
-        
-        with make_server(host, self.port, self._project_handler) as httpserver:
-            sa = httpserver.socket.getsockname()
-            print(f"Serving HTTP on http://localhost:{sa[1]}", "...")
-            httpserver.serve_forever()
+        with make_server(host, self.port, self._project_handler) as server:
+            self._print_startup_message(server, host)
+            server.serve_forever()
+
+    def _normalize_host(self, host: str | None) -> str:
+        """
+        Normalize host binding for WSGI server
+        """
+        if not host or host == "0.0.0.0":
+            return ""
+        if host == "localhost":
+            return "127.0.0.1"
+        return host
+
+
+    def _print_startup_message(self, server, host: str):
+        addr, port = server.socket.getsockname()
+
+        display_host = host if host else "localhost"
+
+        mode = self.config.project_config.get("state", "DEBUG MODE" if self.debug else "Not Confirmed*")
+
+        print(
+            f"\n\nPhoton running in {mode.upper()} mode\n"
+            f"➜  http://{display_host}:{port}\n"
+            f"Press CTRL+C to quit"
+        )
+        if self.debug:
+            print("\n⚠️  Debug mode is ON. Do not use in production environments!")
+        print("\n\n")
 
     def _load_default_middlewares(self):
         for mw in self.config.middleware_config.get("MIDDLEWARES", []):
