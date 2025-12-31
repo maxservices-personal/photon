@@ -1,35 +1,47 @@
-from photon.core.server.photon_app import Photon
-from photon.core.routing.router import Router
-from photon.core.response.http_response import HttpResponse
-from photon.core.request.request import Request
+from photon import PhotonProject, HttpResponse, Request, Router, Route
+from photon.core.middlewares.setup_middleware import Middleware
+from photon.core.config.base import Config
 import time
+from overrides import override
 
-class TimingMiddleware:
-    def before_request(self, request, context):
+class TimingMiddleware(Middleware):
+    def __init__(self):
+        super().__init__()
+
+    @override
+    def before(self, request, context):
         context["start_time"] = time.time()
 
-    def after_response(self, request, response, context):
+    @override
+    def after(self, request, response, context):
         duration = time.time() - context["start_time"]
-        print(f"Request {context.get('request_id')} took {duration:.4f}s")
+        print(f"Request {request.route} took {duration:.10f}s")
 
 
-app = Photon()
-router = Router()
+config = Config()
+
+project = PhotonProject(config)
+
+def home_handler(request: Request, context):
+    return HttpResponse({"message": "Welcome to the Photon Project!"}, json_response=True)
+
+def api_handler(request: Request, context, id):
+    return HttpResponse({"data": f"This is the API endpoint for ID {id}."}, json_response=True)
 
 
-def hello_world(request: Request, middleware_context: dict):
-    return HttpResponse(response="<h1>Hello World!</h1>", headers=[("Content-Type", "text/html")], status_code=200)
-
-router.get("", hello_world)
-
-api_router = Router(prefix="/api/")
-api_router.get("", hello_world)
-api_router.get("/hello", hello_world)
+main_router = Router()
+main_router.use(TimingMiddleware())
+main_router[
+    Route.get("", home_handler, name="home"),
+    Route.get("/hellpo", lambda req, ctx: HttpResponse("Hello World!")),
+].setup()
 
 
-router.include(api_router)
+api_router = Router(prefix="/api")
+api_router[
+    Route.get("/data/<id>/user", api_handler, name="data_handler"),
+].setup()
 
-for respo in router._get_routes():
-    print(respo.path)
+main_router.include(api_router)
 
-app.listen(router=router, port=8080)
+project.listen(main_router, 'localhost')

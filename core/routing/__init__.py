@@ -4,5 +4,5 @@ from .route import Route
 
 __all__ = [
     "Router",
-    "Route"
+    "Route",
 ]
