@@ -5,12 +5,14 @@ from photon.core.response import HttpResponse, FileResponse, Response
 from photon.core.routing import Route
 from photon.helpers.errors import MethodNotAllowedError
 from photon.helpers.shortcuts import Method
+from photon.core.config import Config, Settings
 
 class PhotonProject:
-    def __init__(self, config):
+    def __init__(self):
         self.router = None
         self.routes: list[Route] = []
-        self.config = config
+        self.config = Config()
+        
         self.middlewares = []
         self.debug = self.config.project_config.get("debug", True)
         self.port = self.config.project_config.get("port", 2117)
@@ -130,9 +132,10 @@ class PhotonProject:
             if not isinstance(response, Response):
                 raise ValueError("Handler must return Response")
 
-            for mw in reversed(middleware_stack):
-                if hasattr(mw, "after"):
-                    mw.after(request, response, context)
+            if not getattr(response, "is_streaming", False):
+                for mw in reversed(middleware_stack):
+                    if hasattr(mw, "after"):
+                        mw.after(request, response, context)
 
             return response._complete_response(start_response)
 

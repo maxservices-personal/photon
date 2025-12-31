@@ -1,4 +1,5 @@
-# from typing import override
+# Example Base Class For Middleware
+# TODO: Add more options and features as needed
 
 
 

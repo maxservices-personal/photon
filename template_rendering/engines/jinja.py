@@ -1,4 +1,4 @@
+from ..engine import TemplateBaseEngine
 
-
-class Jinja2Engine:
+class Jinja2Engine(TemplateBaseEngine):
     pass

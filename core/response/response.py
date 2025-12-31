@@ -1,7 +1,8 @@
 
 
 class Response:
-
+    is_streaming = False
+    
     STATUS_MESSAGES = {
         200: "OK",
         201: "Created",
@@ -21,4 +22,20 @@ class Response:
         pass
 
     def handle_error_codes(self):
-        pass
+        """
+        Auto-generate body for error responses if empty
+        """
+        if self.status_code >= 400 and not self.response:
+            message = self.STATUS_MESSAGES.get(
+                self.status_code, "Error"
+            )
+            self.response = f"{self.status_code} {message}"
+
+        return self
+    
+    def _has_header(self, name):
+        return any(h[0].lower() == name.lower() for h in self.headers)
+
+    def _ensure_header(self, name, value):
+        if not self._has_header(name):
+            self.headers.append((name, value))

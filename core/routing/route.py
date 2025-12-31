@@ -1,6 +1,8 @@
 import re
 from typing import Dict, Pattern, Callable
 from photon.helpers.shortcuts import Undefined, Method
+from photon.core import middlewares as middleware_module
+from typing import Any
 
 class Route:
     _PARAM_REGEX = re.compile(r"<(?:(int):)?(\w+)>")
@@ -10,14 +12,14 @@ class Route:
         method: Method,
         path: str,
         handler: Callable,
-        middlewares=None,
+        middlewares: list[Any, middleware_module.Middleware]=None,
         name=None,
         router=None
     ):
         self.method = method.upper()
         self.raw_path = self._normalize_path(path)
         self.handler = handler
-        self.middlewares = list(middlewares) if middlewares else []
+        self.middlewares: list[Any, middleware_module.Middleware] = list(middlewares) if middlewares else []
         self.router = router
         self.name = name if name else Undefined.value
 

@@ -1,12 +1,11 @@
 # Basic Single file implementation of Photon Project with Routing and Middleware
 
 from photon import PhotonProject, HttpResponse, Request, Router, Route
-from photon.core.middlewares.setup_middleware import Middleware
-from photon.core.config.base import Config
+from photon.core import middlewares
 import time
 from overrides import override
 
-class TimingMiddleware(Middleware):
+class TimingMiddleware(middlewares.Middleware):
     def __init__(self):
         super().__init__()
 
@@ -20,9 +19,7 @@ class TimingMiddleware(Middleware):
         print(f"Request {request.route} took {duration:.10f}s")
 
 
-config = Config()
-
-project = PhotonProject(config)
+project = PhotonProject()
 
 def home_handler(request: Request, context):
     return HttpResponse({"message": "Welcome to the Photon Project!"}, json_response=True)

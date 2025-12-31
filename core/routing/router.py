@@ -1,11 +1,13 @@
 from photon.core.routing.route import Route
 
+from ..middlewares import Middleware
+from typing import Any
 
 class Router:
     def __init__(self, prefix: str = ""):
         self.prefix = self._normalize_prefix(prefix)
         self.routes: list[Route] = []
-        self.middlewares = []
+        self.middlewares: list[Any, Middleware] = []
         self._pending: list[Route] = []
 
     def use(self, middleware):
