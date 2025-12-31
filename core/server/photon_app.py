@@ -4,6 +4,7 @@ from photon.core.request import Request
 from photon.core.response import HttpResponse, FileResponse, Response
 from photon.core.routing import Route
 from photon.helpers.errors import MethodNotAllowedError
+from photon.helpers.shortcuts import Method
 
 class PhotonProject:
     def __init__(self, config):
@@ -70,7 +71,7 @@ class PhotonProject:
             if params is None:
                 continue
 
-            if route.method != request.method:
+            if route.method != request.method and route.method != Method.OPTIONS:
                 allowed_methods.add(route.method)
                 continue
 

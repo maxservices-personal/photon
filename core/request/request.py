@@ -1,5 +1,6 @@
 import json
 import urllib.parse
+from urllib.parse import parse_qs
 
 
 class Request:
@@ -19,6 +20,7 @@ class Request:
         self._body = None
         self._json = None
         self._form = None
+        self._query = None
     
     def _parse_headers(self):
         headers = {}
@@ -68,3 +70,39 @@ class Request:
         parsed = urllib.parse.parse_qs(self.text)
         self._form = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
         return self._form
+
+    @property
+    def parameters(self):
+        """
+        Parsed query parameters (?a=1&b=2)
+        """
+        if self._query is not None:
+            return self._query
+
+        raw = self.environ.get("QUERY_STRING", "")
+        parsed = parse_qs(raw, keep_blank_values=True)
+
+        self._query = {
+            key: values[0] if len(values) == 1 else values
+            for key, values in parsed.items()
+        }
+
+        return self._query
+
+    def get(self, key, default=None):
+        """
+        Priority:
+        1. route params
+        2. query params
+        3. form data
+        """
+        if hasattr(self, "params") and key in self.params:
+            return self.params[key]
+
+        if key in self.parameters:
+            return self.parameters[key]
+
+        if key in self.form:
+            return self.form[key]
+
+        return default

@@ -1,13 +1,13 @@
 import re
 from typing import Dict, Pattern, Callable
-from photon.helpers.shortcuts import Undefined
+from photon.helpers.shortcuts import Undefined, Method
 
 class Route:
     _PARAM_REGEX = re.compile(r"<(?:(int):)?(\w+)>")
 
     def __init__(
         self,
-        method: str,
+        method: Method,
         path: str,
         handler: Callable,
         middlewares=None,
@@ -27,20 +27,24 @@ class Route:
 
 
     @classmethod
-    def get(cls, path: str, handler, name=None, middlewares=None):
-        return cls("GET", path, handler, middlewares, name)
+    def get(cls, path: str, handler: Callable, name=None, middlewares=None):
+        return cls(Method.GET, path, handler, middlewares, name)
 
     @classmethod
-    def post(cls, path: str, handler, middlewares=None, name=None):
-        return cls("POST", path, handler, middlewares, name)
+    def post(cls, path: str, handler: Callable, middlewares=None, name=None):
+        return cls(Method.POST, path, handler, middlewares, name)
 
     @classmethod
-    def put(cls, path: str, handler, middlewares=None, name=None):
-        return cls("PUT", path, handler, middlewares, name)
+    def put(cls, path: str, handler: Callable, middlewares=None, name=None):
+        return cls(Method.PUT, path, handler, middlewares, name)
 
     @classmethod
-    def delete(cls, path: str, handler, middlewares=None, name=None):
-        return cls("DELETE", path, handler, middlewares, name)
+    def delete(cls, path: str, handler: Callable, middlewares=None, name=None):
+        return cls(Method.DELETE, path, handler, middlewares, name)
+    
+    @classmethod
+    def options(cls, path: str, handler: Callable, middlewares=None, name=None):
+        return cls(Method.OPTIONS, path, handler, middlewares, name)
 
     def use(self, middleware):
         """Immutable middleware chaining"""
