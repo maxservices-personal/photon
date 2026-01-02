@@ -29,7 +29,7 @@ class Route:
 
 
     @classmethod
-    def get(cls, path: str, handler: Callable, name=None, middlewares=None):
+    def get(cls, path: str, handler: Callable, middlewares=None, name=None):
         return cls(Method.GET, path, handler, middlewares, name)
 
     @classmethod

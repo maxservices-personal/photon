@@ -5,18 +5,17 @@ from photon.core.response import HttpResponse, FileResponse, Response
 from photon.core.routing import Route
 from photon.helpers.errors import MethodNotAllowedError
 from photon.helpers.shortcuts import Method
-from photon.core.config import Config, Settings
+from photon.core.config import settings
 
 class PhotonProject:
     def __init__(self):
         self.router = None
         self.routes: list[Route] = []
-        self.config = Config()
         
         self.middlewares = []
-        self.debug = self.config.project_config.get("debug", True)
-        self.port = self.config.project_config.get("port", 2117)
-
+        self.debug = settings.DEBUG
+        self.port = settings.PORT
+        self.host = settings.HOST
         # self._load_default_middlewares()
 
     def add_middleware(self, middleware):
@@ -26,7 +25,7 @@ class PhotonProject:
         self.router = router
         self.routes = self.router._get_routes()
 
-        host = self._normalize_host(host)
+        host = self._normalize_host(self.host)
 
         with make_server(host, self.port, self._project_handler) as server:
             self._print_startup_message(server, host)
@@ -43,12 +42,12 @@ class PhotonProject:
         return host
 
 
-    def _print_startup_message(self, server, host: str):
+    def _print_startup_message(self, server, host):
         addr, port = server.socket.getsockname()
 
         display_host = host if host else "localhost"
 
-        mode = self.config.project_config.get("state", "DEBUG MODE" if self.debug else "Not Confirmed*")
+        mode = settings.ENV
 
         print(
             f"\n\nPhoton running in {mode.upper()} mode\n"
@@ -60,7 +59,7 @@ class PhotonProject:
         print("\n\n")
 
     def _load_default_middlewares(self):
-        for mw in self.config.middleware_config.get("MIDDLEWARES", []):
+        for mw in settings.MIDDLEWARE:
             module_path, class_name = mw.rsplit(".", 1)
             module = __import__(module_path, fromlist=[class_name])
             middleware_class = getattr(module, class_name)
@@ -106,12 +105,10 @@ class PhotonProject:
         return None
 
     def _send_static_responses(self, request_path:str):
-        if not request_path.startswith(self.config.template_config.get("static_route", "/static")): return None
-        is_static_allowed = self.config.template_config.get("static_allowed", True)
-        if not is_static_allowed: return None
+        if not request_path.startswith(settings.STATIC.get("URL", "/static")): return None
         
-        static_folder: list = self.config.template_config.get("static_dirs", [])[0]
-        _path = request_path.removeprefix(self.config.template_config.get("static_route", "/static") + "/")
+        static_folder: list = settings.STATIC.get("DIRS", [])[0]
+        _path = request_path.removeprefix(settings.STATIC.get("URL", "/static") + "/")
 
         full_path = os.path.join(static_folder, _path)
 

@@ -1,7 +1,7 @@
-from .base import Config
-from .setting import Settings
+from .base import Settings
+
+settings = Settings()
 
 __all__ = [
-    "Config",
-    "Settings"
+    "settings"
 ]

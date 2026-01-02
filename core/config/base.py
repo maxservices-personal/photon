@@ -1,59 +1,106 @@
 import pathlib
 import importlib.util
-import json
-class Config:
+import os
+from uuid import uuid4
+
+class Settings:
+    """
+    Django-style lazy settings object for Photon.
+    Loads settings once and exposes them as attributes.
+    """
+
     def __init__(self):
-        self.project_root = pathlib.Path.cwd()
-        self.config_module = self._load_config_file()
-        self.project_config = self.config_module.PROJECT_CONFIG if self.config_module else self.load_default_config("project_config")
-        self.middleware_config = self.config_module.MIDDLEWARE_CONFIG if self.config_module else self.load_default_config("middleware_config")
-        self.template_config = self.config_module.TEMPLATE_CONFIG if self.config_module else self.load_default_config("template_config")
-        
+        self._loaded = False
+        self._settings = {}
+        self.BASE_DIR = pathlib.Path.cwd()
 
-    def load_default_config(self, config_name):
-        if config_name == "project_config":
-            return {
-                "debug": True,
-                "port": 2117,
-                "state": "development"
-            }
-        elif config_name == "middleware_config":
-            return {
-                "default_cors": False,
-                "MIDDLEWARES": [
-                    "photon.core.middlewares.auth.AuthMiddleware",
-                    "photon.core.middlewares.cors.CORSMiddleware",
-                    "photon.core.middlewares.session.SessionMiddleware",
-                ]
-            }
-        elif config_name == "template_config":
-            return {
-                "dirs": [str(self.project_root / "templates")],
-                "autoescape": True,
-                "engine": [
-                    'photon.template_rendering.engines.jinja.Jinja2Engine',
-                ],
-                "static_dirs": [str(self.project_root / "static")],
-                "static_route": "/static"
-            }
+    def load(self):
+        if self._loaded:
+            return
 
-    def _load_config_file(self):
-        config_path = self.project_root / "photon_config.py"
-        if config_path.exists():
-            spec = importlib.util.spec_from_file_location("photon_config", config_path)
-            config_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(config_module)
-            return config_module
-        return None
-    
-    def setup_project_config(self):
-        return f"""
+        self._settings.update(self._default_settings())
 
-# Auto-generated configuration file for Photon Project
+        self._load_user_settings()
 
-PROJECT_CONFIG = {json.dumps(self.project_config)}
+        self._normalize()
+        self._validate()
 
-MIDDLEWARE_CONFIG = {json.dumps(self.middleware_config)}
+        self._loaded = True
 
-TEMPLATE_CONFIG = {json.dumps(self.template_config)}
-"""
+    def __getattr__(self, name):
+        self.load()
+        if name in self._settings:
+            return self._settings[name]
+        raise AttributeError(f"Photon setting '{name}' not found")
+
+    def __repr__(self):
+        return "<Photon Settings (configured)>"
+
+    def _default_settings(self):
+        return {
+            "DEBUG": True,
+            "ENV": "development",
+            "HOST": "127.0.0.1",
+            "PORT": 2117,
+
+            "SECRET_KEY": f"photon-default-key-{uuid4()}",
+
+            "INSTALLED_APPS": [],
+
+            "MIDDLEWARE": [],
+
+            "TEMPLATES": {
+                "ENGINE": None,
+                "DIRS": [],
+                "APP_DIRS": True,
+                "AUTOESCAPE": True,
+                "OPTIONS": {},
+            },
+
+            "STATIC": {
+                "URL": "/static/",
+                "DIRS": [],
+                "APP_DIRS": True,
+            },
+
+            "DATABASES": {},
+
+            "LOGGING": {
+                "LEVEL": "INFO",
+                "FORMAT": "simple",
+                "ACCESS_LOG": True,
+            },
+        }
+
+    def _load_user_settings(self):
+        config_path = self.BASE_DIR / "photon_config.py"
+
+        if not config_path.exists():
+            return
+
+        spec = importlib.util.spec_from_file_location(
+            "photon_config", config_path
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        for key in dir(module):
+            if key.isupper():
+                self._settings[key] = getattr(module, key)
+
+    def _normalize(self):
+        tmpl = self._settings["TEMPLATES"]
+        tmpl["DIRS"] = [
+            str(self.BASE_DIR / d) for d in tmpl.get("DIRS", [])
+        ]
+
+        static = self._settings["STATIC"]
+        static["DIRS"] = [
+            str(self.BASE_DIR / d) for d in static.get("DIRS", [])
+        ]
+
+    def _validate(self):
+        if not self._settings["SECRET_KEY"] and self._settings["ENV"] == "production":
+            raise RuntimeError(
+                "SECRET_KEY must be set in production environment"
+            )
