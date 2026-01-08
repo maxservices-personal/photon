@@ -1,19 +1,5 @@
 ## Installation
 
-To get started with photon install it from PyPi*.
-
-```bash
-pip install photon
-```
-
-<p style="color:#a2a2a2;">*As we are still in development, we haven't uploaded this project to PyPi, expected release for PyPi is planned for 21 jan 2026</p>
-
-## Project Setup & CLI
-
-We have cli for automatic template implementation for your project. We have added multiple commands to this for faster and safer implementation of photon into your own app.
-
-## Installation
-
 Install Photon from PyPI (when available) or install from source during development:
 
 ```bash
@@ -78,10 +64,7 @@ blog_project/
 
 Contributions and bug reports are welcome. Please open issues or pull requests in the project repository and follow the contribution guidelines.
 
-If you'd like, I can also:
-- add a short example `photon_config.py` template,
-- include a sample `manage.py` snippet showing the CLI entrypoint.
-Tell me which you'd prefer next.
+## Routing
 
 There are many ways to setup routing in photon for the main project as well as the current app. 
 
