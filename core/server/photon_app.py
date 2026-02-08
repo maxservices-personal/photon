@@ -1,11 +1,15 @@
 import os
 from wsgiref.simple_server import make_server
 from photon.core.request import Request
-from photon.core.response import HttpResponse, FileResponse, Response
+from photon.core.response import HttpResponse, Response
 from photon.core.routing import Route
 from photon.helpers.errors import MethodNotAllowedError
 from photon.helpers.shortcuts import Method
 from photon.core.config import settings
+from photon.helpers.management.app import App
+from photon.core.handlers.static_handler import StaticHandler
+from pathlib import Path
+import importlib
 
 class PhotonProject:
     def __init__(self):
@@ -16,7 +20,11 @@ class PhotonProject:
         self.debug = settings.DEBUG
         self.port = settings.PORT
         self.host = settings.HOST
-        # self._load_default_middlewares()
+
+        self.apps: list[App] = []
+
+        self._load_installed_apps()
+        self.static_handler = StaticHandler(installed_apps=self.apps)
 
     def add_middleware(self, middleware):
         self.middlewares.append(middleware)
@@ -24,6 +32,8 @@ class PhotonProject:
     def listen(self, router, host: str | None = None):
         self.router = router
         self.routes = self.router._get_routes()
+        # self._load_default_middlewares()
+        self.routes = self.static_handler.define_routes(self.routes)
 
         host = self._normalize_host(self.host)
 
@@ -103,23 +113,9 @@ class PhotonProject:
             )
 
         return None
-
-    def _send_static_responses(self, request_path:str):
-        if not request_path.startswith(settings.STATIC.get("URL", "/static")): return None
-        
-        static_folder: list = settings.STATIC.get("DIRS", [])[0]
-        _path = request_path.removeprefix(settings.STATIC.get("URL", "/static") + "/")
-
-        full_path = os.path.join(static_folder, _path)
-
-        return FileResponse(full_path)
-
+    
     def _project_handler(self, environ, start_response):
         request = Request(environ)
-
-        _is_static_serve = self._send_static_responses(request.route)
-        if isinstance(_is_static_serve, Response):
-            return _is_static_serve._complete_response(start_response)
 
         context = {}
 
@@ -161,3 +157,13 @@ class PhotonProject:
         except Exception as e:
             response = HttpResponse(str(e), status_code=500)
             return response._complete_response(start_response)
+
+    def _load_installed_apps(self):
+
+        for app_path in settings.INSTALLED_APPS:
+            module = importlib.import_module(str("apps" + "." + app_path))
+
+            module_dir = os.path.dirname(module.__file__)
+            app_label = app_path.rsplit(".", 1)[-1]
+
+            self.apps.append(App(path=Path(app_path), settings=None, app_label=app_label, module=module, module_dir=module_dir))

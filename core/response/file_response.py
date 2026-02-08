@@ -13,10 +13,12 @@ def file_iterator(file_path, chunk_size=8192):
 
 class FileResponse(Response):
 
-    def __init__(self, file_path, download=False):
+    def __init__(self, file_path, status_code=200, headers=None, download=False):
         super().__init__()
         self.file_path = file_path
         self.download = download
+        self.status_code = status_code
+        self.headers = headers or []
 
     def _complete_response(self, start_response):
         self.handle_error_codes()

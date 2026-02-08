@@ -2,13 +2,13 @@ import os
 from ..utils import register_app
 
 APP_TEMPLATE = {
-    "router.py": """from photon import Router
+    "router.py": """from photon import Router, Route
 from .views import index
 
 router = Router("/{name}")
 
 router[
-    # add routes here
+    Route.get("/", index, name="{name}_home"), # Add your Routes here
 ]
 
 router.setup()

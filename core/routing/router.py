@@ -52,11 +52,14 @@ class Router:
         return self
 
 
-    def include(self, router: "Router"):
+    def include(self, router: "Router", prefix: str=None):
         """
         Include routes from another router (must be setup already)
         """
         for route in router._get_routes():
+            if prefix and route.router.prefix:
+                print("Both 'include' and 'router' have prefix. By the importance Photon is using 'router' prefix.")
+
             full_path = self._join(self.prefix, route.raw_path)
 
             self.routes.append(

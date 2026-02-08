@@ -1,7 +1,6 @@
 import pathlib
 import importlib.util
-import os
-from uuid import uuid4
+from ...helpers.management.secret_key import secret_key
 
 class Settings:
     """
@@ -27,6 +26,9 @@ class Settings:
 
         self._loaded = True
 
+        self._keys = []
+
+
     def __getattr__(self, name):
         self.load()
         if name in self._settings:
@@ -43,7 +45,7 @@ class Settings:
             "HOST": "127.0.0.1",
             "PORT": 2117,
 
-            "SECRET_KEY": f"photon-default-key-{uuid4()}",
+            "SECRET_KEY": secret_key(),
 
             "INSTALLED_APPS": [],
 
@@ -86,7 +88,8 @@ class Settings:
 
         for key in dir(module):
             if key.isupper():
-                self._settings[key] = getattr(module, key)
+                val = getattr(module, key)
+                self._settings[key] = val
 
     def _normalize(self):
         tmpl = self._settings["TEMPLATES"]
