@@ -13,6 +13,8 @@ class Settings:
         self._settings = {}
         self.BASE_DIR = pathlib.Path.cwd()
 
+        self._template_engine_class_instance = None
+
     def load(self):
         if self._loaded:
             return

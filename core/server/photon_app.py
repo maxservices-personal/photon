@@ -26,6 +26,8 @@ class PhotonProject:
         self._load_installed_apps()
         self.static_handler = StaticHandler(installed_apps=self.apps)
 
+        self._setup_template_engines()
+
     def add_middleware(self, middleware):
         self.middlewares.append(middleware)
 
@@ -119,44 +121,45 @@ class PhotonProject:
 
         context = {}
 
-        try:
-            route = self._resolve_route(request)
+        # try
+        route = self._resolve_route(request)
 
-            if not route:
-                response = HttpResponse("404 Not Found", status_code=404)
-                return response._complete_response(start_response)
-            
-            middleware_stack = (
-                self.middlewares +
-                route.router.middlewares +
-                route.middlewares
-            )
-
-            for mw in middleware_stack:
-                if hasattr(mw, "before"):
-                    res = mw.before(request, context)
-                    if isinstance(res, Response):
-                        return res._complete_response(start_response)
-                    
-            params = getattr(request, "params", {})
-            response = route.handler(request, context, **params)
-            if not isinstance(response, Response):
-                raise ValueError("Handler must return Response")
-
-            if not getattr(response, "is_streaming", False):
-                for mw in reversed(middleware_stack):
-                    if hasattr(mw, "after"):
-                        mw.after(request, response, context)
-
+        if not route:
+            response = HttpResponse("404 Not Found", status_code=404)
             return response._complete_response(start_response)
+        
+        middleware_stack = (
+            self.middlewares +
+            route.router.middlewares +
+            route.middlewares
+        )
 
-        except MethodNotAllowedError as e:
-            response = HttpResponse(str(e), status_code=405)
-            return response._complete_response(start_response)
+        for mw in middleware_stack:
+            if hasattr(mw, "before"):
+                res = mw.before(request, context)
+                if isinstance(res, Response):
+                    return res._complete_response(start_response)
+                
+        params = getattr(request, "params", {})
+        response = route.handler(request, context, **params)
+        if not isinstance(response, Response):
+            raise ValueError("Handler must return Response")
 
-        except Exception as e:
-            response = HttpResponse(str(e), status_code=500)
-            return response._complete_response(start_response)
+        if not getattr(response, "is_streaming", False):
+            for mw in reversed(middleware_stack):
+                if hasattr(mw, "after"):
+                    mw.after(request, response, context)
+
+        return response._complete_response(start_response)
+
+        # except MethodNotAllowedError as e:
+        #     response = HttpResponse(str(e), status_code=405)
+        #     return response._complete_response(start_response)
+
+        # except Exception as e:
+        #     response = HttpResponse(str(e), status_code=500)
+        #     print(e)
+        #     return response._complete_response(start_response)
 
     def _load_installed_apps(self):
 
@@ -167,3 +170,18 @@ class PhotonProject:
             app_label = app_path.rsplit(".", 1)[-1]
 
             self.apps.append(App(path=Path(app_path), settings=None, app_label=app_label, module=module, module_dir=module_dir))
+
+    def _setup_template_engines(self):
+        engine = settings.TEMPLATES.get("ENGINE", None)
+
+        if not engine:
+            return
+        
+        template_engine_module = importlib.import_module(engine.rsplit(".", 1)[0])
+
+        template_engine_class = getattr(template_engine_module, engine.rsplit(".", 1)[1])
+        
+        _template_engine_class_instance = template_engine_class(installed_apps=self.apps)
+        
+        settings._template_engine_class_instance = _template_engine_class_instance
+
