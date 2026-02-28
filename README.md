@@ -6,7 +6,7 @@ Install Photon from PyPI (when available) or install from source during developm
 pip install photon
 ```
 
-_Note: Photon is under active development; the first PyPI release is planned for January 21, 2026._
+_Note: Photon is under active development; the first PyPI release is planned for April 2, 2026._
 
 ## Quick Start
 
